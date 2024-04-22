@@ -208,6 +208,11 @@ export class WatchOnlyWallet extends LegacyWallet {
     return this.masterFingerprint;
   }
 
+  setMasterFingerprint(fingerprint: number) {
+    console.log((this.masterFingerprint = fingerprint));
+    return (this.masterFingerprint = fingerprint);
+  }
+
   getMasterFingerprintHex() {
     if (!this.masterFingerprint) return '00000000';
     let masterFingerprintHex = Number(this.masterFingerprint).toString(16);

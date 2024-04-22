@@ -157,7 +157,15 @@ const WalletDetails = () => {
         setMasterFingerprint(wallet.getMasterFingerprintHex());
       });
     }
-  }, [isAdvancedModeEnabled, wallet]);
+  }, [isAdvancedModeEnabledRender, wallet]);
+
+  const masterFingerprintIsValid = useMemo(() => {
+    if (masterFingerprint?.length !== 8) {
+      return false;
+    }
+    return true;
+  }, [masterFingerprint]);
+
   const stylesHook = StyleSheet.create({
     textLabel1: {
       color: colors.feeText,
@@ -171,8 +179,15 @@ const WalletDetails = () => {
     input: {
       borderColor: colors.formBorder,
       borderBottomColor: colors.formBorder,
-
       backgroundColor: colors.inputBackgroundColor,
+    },
+    fingerprintInput: {
+      borderColor: masterFingerprintIsValid ? colors.inputBackgroundColor : '#d0021b',
+    },
+    derivationPathView: {
+      minHeight: 44,
+      height: 44,
+      justifyContent: 'center',
     },
     save: {
       backgroundColor: colors.lightButton,
@@ -190,6 +205,10 @@ const WalletDetails = () => {
     }
   }, [wallet]);
 
+  const handleOnChangeMasterFingerPrint = text => {
+    setMasterFingerprint(text);
+  };
+
   const save = () => {
     setIsLoading(true);
     if (walletName.trim().length > 0) {
@@ -200,6 +219,10 @@ const WalletDetails = () => {
       wallet.setHideTransactionsInWalletsList(!hideTransactionsInWalletsList);
       if (wallet.allowBIP47()) {
         wallet.switchBIP47(isBIP47Enabled);
+      }
+      if (wallet.type === WatchOnlyWallet.type && wallet.isHd() && masterFingerprintIsValid) {
+        console.log(`master fingerprint ==> ${masterFingerprint} good to go`);
+        wallet.setMasterFingerprint(masterFingerprint);
       }
     }
     saveToDisk()
@@ -256,7 +279,9 @@ const WalletDetails = () => {
     try {
       const walletBalanceConfirmation = await prompt(
         loc.wallets.details_delete_wallet,
-        loc.formatString(loc.wallets.details_del_wb_q, { balance: wallet.getBalance() }),
+        loc.formatString(loc.wallets.details_del_wb_q, {
+          balance: wallet.getBalance(),
+        }),
         true,
         'plain-text',
         true,
@@ -377,7 +402,9 @@ const WalletDetails = () => {
         const filePath = RNFS.DownloadDirectoryPath + `/${fileName}`;
         try {
           await RNFS.writeFile(filePath, contents);
-          presentAlert({ message: loc.formatString(loc.send.txSaved, { filePath: fileName }) });
+          presentAlert({
+            message: loc.formatString(loc.send.txSaved, { filePath: fileName }),
+          });
         } catch (e) {
           console.log(e);
           presentAlert({ message: e.message });
@@ -483,7 +510,11 @@ const WalletDetails = () => {
           },
           style: 'destructive',
         },
-        { text: loc.wallets.details_no_cancel, onPress: () => {}, style: 'cancel' },
+        {
+          text: loc.wallets.details_no_cancel,
+          onPress: () => {},
+          style: 'cancel',
+        },
       ],
       { cancelable: false },
     );
@@ -640,14 +671,32 @@ const WalletDetails = () => {
                         <Text style={[styles.textLabel2, stylesHook.textLabel2]}>
                           {loc.wallets.details_master_fingerprint.toLowerCase()}
                         </Text>
-                        <BlueText>{masterFingerprint ?? <ActivityIndicator />}</BlueText>
+                        <KeyboardAvoidingView enabled={!Platform.isPad} behavior={Platform.OS === 'ios' ? 'position' : null}>
+                          <View style={[styles.input, stylesHook.input, stylesHook.fingerprintInput]}>
+                            <TextInput
+                              value={masterFingerprint}
+                              onChangeText={handleOnChangeMasterFingerPrint}
+                              // onSubmitEditing={handleOnFingerprintSubmitEditing}
+                              numberOfLines={1}
+                              placeholderTextColor="#81868e"
+                              style={styles.inputText}
+                              editable={!isLoading}
+                              underlineColorAndroid="transparent"
+                              testID="MasterFingerPrintInput"
+                              placeholder={masterFingerprint}
+                            />
+                          </View>
+                        </KeyboardAvoidingView>
+                        {/* <BlueText>{masterFingerprint ?? <ActivityIndicator />}</BlueText> */}
                       </View>
                     )}
 
                     {derivationPath && (
                       <View>
                         <Text style={[styles.textLabel2, stylesHook.textLabel2]}>{loc.wallets.details_derivation_path}</Text>
-                        <BlueText testID="DerivationPath">{derivationPath}</BlueText>
+                        <View style={stylesHook.derivationPathView}>
+                          <BlueText testID="DerivationPath">{derivationPath}</BlueText>
+                        </View>
                       </View>
                     )}
                   </View>
