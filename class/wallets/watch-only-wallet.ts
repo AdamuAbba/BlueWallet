@@ -209,7 +209,8 @@ export class WatchOnlyWallet extends LegacyWallet {
   }
 
   setMasterFingerprint(fingerprint: number) {
-    console.log((this.masterFingerprint = fingerprint));
+    this.masterFingerprint = fingerprint;
+    console.error('master fingerprint ==>>', this.masterFingerprint);
     return (this.masterFingerprint = fingerprint);
   }
 

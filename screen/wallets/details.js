@@ -154,16 +154,18 @@ const WalletDetails = () => {
   useEffect(() => {
     if (isAdvancedModeEnabled && wallet.allowMasterFingerprint()) {
       InteractionManager.runAfterInteractions(() => {
-        setMasterFingerprint(wallet.getMasterFingerprintHex());
+        setMasterFingerprint(wallet.getMasterFingerprint().toString());
       });
     }
-  }, [isAdvancedModeEnabledRender, wallet]);
+  }, [isAdvancedModeEnabled, wallet]);
 
   const masterFingerprintIsValid = useMemo(() => {
-    if (masterFingerprint?.length !== 8) {
+    if (!/^[0-9A-Fa-f]{8}$/.test(masterFingerprint)) {
       return false;
     }
-    return true;
+    const buffer = Buffer.from(masterFingerprint, 'hex');
+    const is4bytes = buffer.length === 4;
+    return is4bytes;
   }, [masterFingerprint]);
 
   const stylesHook = StyleSheet.create({
@@ -220,10 +222,10 @@ const WalletDetails = () => {
       if (wallet.allowBIP47()) {
         wallet.switchBIP47(isBIP47Enabled);
       }
-      if (wallet.type === WatchOnlyWallet.type && wallet.isHd() && masterFingerprintIsValid) {
-        console.log(`master fingerprint ==> ${masterFingerprint} good to go`);
-        wallet.setMasterFingerprint(masterFingerprint);
-      }
+    }
+    if (wallet.type === WatchOnlyWallet.type) {
+      wallet.setMasterFingerprint(masterFingerprint);
+      setMasterFingerprint(wallet.getMasterFingerprintHex().toString());
     }
     saveToDisk()
       .then(() => {
@@ -676,8 +678,11 @@ const WalletDetails = () => {
                             <TextInput
                               value={masterFingerprint}
                               onChangeText={handleOnChangeMasterFingerPrint}
-                              // onSubmitEditing={handleOnFingerprintSubmitEditing}
+                              onSubmitEditing={() => {
+                                wallet.setMasterFingerprint(masterFingerprint);
+                              }}
                               numberOfLines={1}
+                              maxLength={8}
                               placeholderTextColor="#81868e"
                               style={styles.inputText}
                               editable={!isLoading}
